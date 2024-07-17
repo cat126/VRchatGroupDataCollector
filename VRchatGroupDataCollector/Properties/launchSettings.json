@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "VRchatGroupDataCollector": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "AWS_PROFILE": "visualstudio"
+      }
+    }
+  }
+}
