@@ -94,11 +94,12 @@
             // Output
             // 
             Output.AutoSize = true;
-            Output.Location = new Point(390, 59);
+            Output.Location = new Point(352, 56);
             Output.Name = "Output";
-            Output.Size = new Size(38, 15);
+            Output.Size = new Size(237, 45);
             Output.TabIndex = 6;
-            Output.Text = "label3";
+            Output.Text = "Use the same username and password \r\nyou used for the website,not your vrchat or \r\ndiscord  password. Close vrchat first.";
+            Output.Click += Output_Click;
             // 
             // Form1
             // 

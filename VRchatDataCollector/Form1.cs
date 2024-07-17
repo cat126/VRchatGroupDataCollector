@@ -12,37 +12,37 @@ namespace VRchatDataCollector
 {
     public partial class Form1 : Form
     {
-      
+
         public Form1()
         {
             InitializeComponent();
             //
             Console.WriteLine("testing one two three");
-              var protector  = MemoryProtection.Setup();
-            string mydata= Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) +$"{Path.DirectorySeparatorChar}VRchatDataCollector/data.txt";
+            var protector = MemoryProtection.Setup();
+            string mydata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + $"{Path.DirectorySeparatorChar}VRchatDataCollector/data.txt";
             try
             {
                 using StreamReader reader = new(mydata);
                 string username = reader.ReadLine();
                 username = protector.RemoveProtection(username);
-                this.UserNameBox.Text=username;
+                this.UserNameBox.Text = username;
                 string password = reader.ReadLine();
                 password = protector.RemoveProtection(password);
-                this.PasswordBox.Text=password; ;
+                this.PasswordBox.Text = password; ;
 
             }
             catch (Exception)
             {
 
-                
+
             }
 
-            
+
             string test = protector.Protect("Hello");
             Console.WriteLine(test);
             Console.WriteLine(protector.RemoveProtection(test));
             //
-            
+
         }
         private void button1_Click(object sender, System.EventArgs e)
         {
@@ -61,7 +61,7 @@ namespace VRchatDataCollector
                     {
 
 
-                        
+
                         outputFile.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(item));
 
 
@@ -92,7 +92,7 @@ namespace VRchatDataCollector
                 System.IO.Directory.CreateDirectory(mydata);
                 mydata = mydata + "data.txt";
                 var protector = MemoryProtection.Setup();
-                
+
                 using (StreamWriter outputFile = new StreamWriter(mydata))
                 {
                     string username = this.UserNameBox.Text.Trim();
@@ -118,7 +118,7 @@ namespace VRchatDataCollector
                 var logFiles = VRchatLogDataModel.LogProcessor.ListVrchatLogFiles();
                 int fileCount = logFiles.Length + 1;
                 int currentFile = 1;
-                var graphQLClient = new GraphQLHttpClient("https://mg2shshe3zaclks56t5bxbxbpe.appsync-api.us-east-2.amazonaws.com/graphql", new NewtonsoftJsonSerializer());
+                var graphQLClient = new GraphQLHttpClient("https://33zk5satxndvld4jnqbg2tprdm.appsync-api.us-east-2.amazonaws.com/graphql", new NewtonsoftJsonSerializer());
                 graphQLClient.HttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
                 foreach (var logFile in logFiles)
                 {
@@ -159,20 +159,21 @@ namespace VRchatDataCollector
                     currentFile++;
                 }
                 //
-
+                MessageBox.Show("All Done! The program will now close");
+                System.Windows.Forms.Application.Exit();
             }
 
 
 
-            MessageBox.Show("All Done! The program will now close");
+
 
         }
 
         public static AuthFlowResponse AuthenticateWithSrp(string username, string password)
         {
             var provider = new AmazonCognitoIdentityProviderClient(new AnonymousAWSCredentials(), FallbackRegionFactory.GetRegionEndpoint());
-            string clientID = "11kvh88sqq01rrpndjs4ah1tk9";
-            var userPool = new CognitoUserPool("us-east-2_cMqHHqcY8", clientID, provider);
+            string clientID = "6fvkibcs8r4devuic7k12g70p9";
+            var userPool = new CognitoUserPool("us-east-2_cvAEdgOs0", clientID, provider);
             var user = new CognitoUser(username, clientID, userPool, provider);
 
 
@@ -187,6 +188,11 @@ namespace VRchatDataCollector
         }
 
         private void UserNameBox_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Output_Click(object sender, EventArgs e)
         {
 
         }
