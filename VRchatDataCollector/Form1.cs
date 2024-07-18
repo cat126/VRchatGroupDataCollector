@@ -118,7 +118,7 @@ namespace VRchatDataCollector
                 var logFiles = VRchatLogDataModel.LogProcessor.ListVrchatLogFiles();
                 int fileCount = logFiles.Length + 1;
                 int currentFile = 1;
-                var graphQLClient = new GraphQLHttpClient("https://33zk5satxndvld4jnqbg2tprdm.appsync-api.us-east-2.amazonaws.com/graphql", new NewtonsoftJsonSerializer());
+                var graphQLClient = new GraphQLHttpClient("https://hlfxzmed2jh4zgm37n4kdy5kna.appsync-api.us-east-2.amazonaws.com/graphql", new NewtonsoftJsonSerializer());
                 graphQLClient.HttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
                 foreach (var logFile in logFiles)
                 {
@@ -130,29 +130,29 @@ namespace VRchatDataCollector
                     int progress = 0;
                     foreach (var item in logitems)
                     {
-                        string query = item.ToPlayeritem().toGraphQLcreationString();
+                        string query = item.ToPlayeritem(this.UserNameBox.Text.Trim()).toGraphQLcreationString();
                         Console.WriteLine(query);
                         var dataupdate = new GraphQLRequest(query);
                         var sentRequest = graphQLClient.SendMutationAsync<vrChatLogitemJOSN>(dataupdate);
                         await sentRequest;
                         //sentRequest.Wait();
                         requests.AddLast(sentRequest);
-
-                        /*
+                       
+                        
                         sentRequest.Wait();
                         var response = sentRequest.Result;
                         if (response.Errors != null)
                         {
                             foreach (var error in response.Errors)
                             {
-                                //Console.WriteLine(error.Message);
+                                Console.WriteLine(error.Message);
 
                             }
-
+                            throw new Exception(response.Errors[0].Message);
                         }
                         
-                        //Console.WriteLine(response.Data);
-                        */
+                        Console.WriteLine(response.Data);
+                        
                         progress++;
                         this.Output.Text = $"{progress} out of {logitems.Length} done in file: {currentFile} of {fileCount}";
                     }

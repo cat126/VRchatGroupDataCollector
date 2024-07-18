@@ -68,9 +68,9 @@ namespace VRchatLogDataModel
             return output;
         }
 
-        public vrChatLogitemJOSN ToPlayeritem()
+        public vrChatLogitemJOSN ToPlayeritem(string from)
         {
-            return new vrChatLogitemJOSN(this); 
+            return new vrChatLogitemJOSN(this, from); 
         }
     }
 }

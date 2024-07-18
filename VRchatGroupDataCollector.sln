@@ -11,10 +11,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VRchatLogDataModel", "VRcha
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestConsole", "TestConsole\TestConsole.csproj", "{721BCBF5-A8E5-4DD7-A67A-07CEF1F210C1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VRchatGroupDataCollector", "VRchatDataCollector\VRchatGroupDataCollector.csproj", "{702378D7-DA7E-4EA8-880C-0CAF66F96CEC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VRchatGroupDataCollector", "VRchatDataCollector\VRchatGroupDataCollector.csproj", "{702378D7-DA7E-4EA8-880C-0CAF66F96CEC}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FE901DAA-F9F5-4E35-9DE2-6A48CDE19417} = {FE901DAA-F9F5-4E35-9DE2-6A48CDE19417}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DebugConsole", "DebugConsole\DebugConsole.csproj", "{A2B9B79D-4C5C-4AF9-B1A0-2FF5CC19CF26}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,6 +44,10 @@ Global
 		{702378D7-DA7E-4EA8-880C-0CAF66F96CEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{702378D7-DA7E-4EA8-880C-0CAF66F96CEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{702378D7-DA7E-4EA8-880C-0CAF66F96CEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2B9B79D-4C5C-4AF9-B1A0-2FF5CC19CF26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2B9B79D-4C5C-4AF9-B1A0-2FF5CC19CF26}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2B9B79D-4C5C-4AF9-B1A0-2FF5CC19CF26}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2B9B79D-4C5C-4AF9-B1A0-2FF5CC19CF26}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

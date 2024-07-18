@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace VRchatLogDataModel
@@ -10,29 +11,31 @@ namespace VRchatLogDataModel
     {
         //FEClogsData
         //feclogsGraphQL
-        public int itemID { get; }
+        public string itemID { get; }
         public DateTime time;
-        public int EventID;
+        public string EventID;
         public string type;
         public string PlayerName;
         public int playerCount;
         public string worldID;
         public int instanceID;
-        public string instanceType;
+        //public string instanceType;
         public string CreatorID { get; private set; }
         public string GroupAccessType { get; private set; }
         public string region;
         public string roomName;
+        public string logFrom;
 
-        
+
+
 
 
         public vrChatLogitemJOSN()
         { 
         }
-            public vrChatLogitemJOSN(vrChatLogItem item)
+            public vrChatLogitemJOSN(vrChatLogItem item, string from)
         {
-           //System.Web.HttpUtility.HtmlEncode(item.ToString());
+            this.logFrom = from;
             this.time = item.time.ToUniversalTime();
             this.playerCount = item.playerCount;
             //this.instance = item.instance;
@@ -43,18 +46,23 @@ namespace VRchatLogDataModel
             this.PlayerName = "";
             for (int i = 1; i < temp2.Length; i++) 
             {
-                this.PlayerName += System.Web.HttpUtility.HtmlEncode(temp2[i].Trim())+" ";
+                this.PlayerName += System.Web.HttpUtility.JavaScriptStringEncode(temp2[i].Trim())+" ";
             }
             this.PlayerName= PlayerName.Trim();
             this.worldID = item.instance.worldID;
             this.instanceID = item.instance.instanceID;
-            this.instanceType = item.instance.instanceType;
+            //this.instanceType = item.instance.instanceType;
             this.CreatorID = item.instance.CreatorID;
             this.GroupAccessType = item.instance.GroupAccessType;
+            string GroupAccessTypePattern = "~groupAccessType\\((.+)\\)";
+            var PatternMacth = Regex.Match(this.GroupAccessType, GroupAccessTypePattern);
+            this.GroupAccessType = PatternMacth.Groups[1].Value;
             this.region = item.instance.region;
-            this.roomName = System.Web.HttpUtility.HtmlEncode(item.instance.roomName);
-            this.EventID= item.instance.ToString().GetHashCode();
-            itemID =$"{type} {PlayerName} {playerCount} {item.instance} {time}".GetHashCode();
+            this.roomName = System.Web.HttpUtility.JavaScriptStringEncode(item.instance.roomName);
+            string eventidbeforhash = $"|{this.instanceID} {this.GroupAccessType} {this.region} {this.roomName}|";
+            
+            this.EventID= LogProcessor.CreateMD5(eventidbeforhash);
+            this.itemID = LogProcessor.CreateMD5($"|{type} {PlayerName} {playerCount} {this.EventID} {time}|");
             
         }
 
@@ -69,7 +77,7 @@ namespace VRchatLogDataModel
             //string closebracket = "}";
             long unixtimestamp=  ((DateTimeOffset)time).ToUnixTimeSeconds();
             //string query = $"mutation MyMutation {openbracket}\r\n  createPlayerEvent(input: {openbracket} time: {unixtimestamp}, EventID: {EventID}, GroupAccessType: \"{GroupAccessType}\", PlayerName: \"{PlayerName}\", _version: 10, instanceID: {instanceID}, itemID: {itemID}, instanceType: \"{instanceType}\", playerCount: {playerCount}, roomName: \"{roomName}\", worldID: \"{worldID}\", type: \"{instanceType}\", region: \"{region}\"{closebracket}) \r\n{closebracket}";
-            string query = $"mutation MyMutation {{\r\n  createPlayerEvent(input: {{EventID: {EventID}, GroupAccessType: \"{GroupAccessType}\", PlayerName: \"{PlayerName}\", _version: 10, instanceID: {instanceID}, instanceType: \"{instanceType}\", itemID: {itemID}, playerCount: {playerCount}, region: \"{region}\", roomName: \"{roomName}\", time: {unixtimestamp}, type: \"{type}\", worldID: \"{worldID}\"}}){{\r\n        _deleted\r\n    }} \r\n}}";
+            string query = $"mutation MyMutation {{\r\n  createPlayerEvent(input: {{EventID: \"{EventID}\", GroupAccessType: \"{GroupAccessType}\", PlayerName: \"{PlayerName}\", _version: 10, instanceID: {instanceID}, itemID: \"{itemID}\", playerCount: {playerCount}, region: \"{region}\", roomName: \"{roomName}\", time: {unixtimestamp}, type: \"{type}\", worldID: \"{worldID}\", logFrom: \"{logFrom}\"}}){{\r\n        _deleted\r\n    }} \r\n}}";
             return query;
         }
     }
