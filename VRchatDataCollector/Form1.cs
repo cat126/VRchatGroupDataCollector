@@ -8,6 +8,7 @@ using GraphQL;
 using GraphQL.Client.Serializer.Newtonsoft;
 using Amazon.Runtime.Internal;
 using System.IO;
+using System.Diagnostics.Eventing.Reader;
 namespace VRchatDataCollector
 {
     public partial class Form1 : Form
@@ -118,6 +119,8 @@ namespace VRchatDataCollector
                 var logFiles = VRchatLogDataModel.LogProcessor.ListVrchatLogFiles();
                 int fileCount = logFiles.Length + 1;
                 int currentFile = 1;
+                int itemsSentSuccessfully = 0;
+                int itemsFailed = 0;
                 var graphQLClient = new GraphQLHttpClient("https://hlfxzmed2jh4zgm37n4kdy5kna.appsync-api.us-east-2.amazonaws.com/graphql", new NewtonsoftJsonSerializer());
                 graphQLClient.HttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
                 foreach (var logFile in logFiles)
@@ -143,18 +146,25 @@ namespace VRchatDataCollector
                         var response = sentRequest.Result;
                         if (response.Errors != null)
                         {
+                            itemsFailed++;
+                            Console.WriteLine($"Failed Request {query}");
                             foreach (var error in response.Errors)
                             {
                                 Console.WriteLine(error.Message);
 
                             }
-                            throw new Exception(response.Errors[0].Message);
+                            //throw new Exception(response.Errors[0].Message);
+                        }
+                        else 
+                        {
+                            itemsSentSuccessfully++;
                         }
                         
                         Console.WriteLine(response.Data);
                         
                         progress++;
-                        this.Output.Text = $"{progress} out of {logitems.Length} done in file: {currentFile} of {fileCount}";
+                        this.Output.Text = $"{progress} out of {logitems.Length} done in file: {currentFile} of {fileCount}" +
+                            $"\n Items sent successfully: {itemsSentSuccessfully} Items failed: {itemsFailed}";
                     }
                     currentFile++;
                 }
