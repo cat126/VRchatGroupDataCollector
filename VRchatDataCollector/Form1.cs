@@ -18,7 +18,7 @@ namespace VRchatDataCollector
         {
             InitializeComponent();
             //
-            Console.WriteLine("testing one two three");
+            
             var protector = MemoryProtection.Setup();
             string mydata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + $"{Path.DirectorySeparatorChar}VRchatDataCollector/data.txt";
             try
@@ -181,7 +181,8 @@ namespace VRchatDataCollector
 
         public static AuthFlowResponse AuthenticateWithSrp(string username, string password)
         {
-            var provider = new AmazonCognitoIdentityProviderClient(new AnonymousAWSCredentials(), FallbackRegionFactory.GetRegionEndpoint());
+            
+            var provider = new AmazonCognitoIdentityProviderClient(new AnonymousAWSCredentials(), Amazon.RegionEndpoint.USEast2);
             string clientID = "6fvkibcs8r4devuic7k12g70p9";
             var userPool = new CognitoUserPool("us-east-2_cvAEdgOs0", clientID, provider);
             var user = new CognitoUser(username, clientID, userPool, provider);
