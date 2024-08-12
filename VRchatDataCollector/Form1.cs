@@ -117,7 +117,7 @@ namespace VRchatDataCollector
                 //
                 LinkedList<System.Threading.Tasks.Task<GraphQL.GraphQLResponse<VRchatLogDataModel.vrChatLogitemJOSN>>> requests = new LinkedList<System.Threading.Tasks.Task<GraphQL.GraphQLResponse<VRchatLogDataModel.vrChatLogitemJOSN>>>();
                 var logFiles = VRchatLogDataModel.LogProcessor.ListVrchatLogFiles();
-                int fileCount = logFiles.Length + 1;
+                int fileCount = logFiles.Length;
                 int currentFile = 1;
                 int itemsSentSuccessfully = 0;
                 int itemsFailed = 0;
