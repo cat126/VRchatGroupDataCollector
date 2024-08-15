@@ -9,8 +9,6 @@ namespace VRchatLogDataModel
 {
     public class vrChatLogitemJOSN
     {
-        //FEClogsData
-        //feclogsGraphQL
         public string itemID;
         public long time;
         public string EventID;
@@ -19,7 +17,6 @@ namespace VRchatLogDataModel
         public int playerCount;
         public string worldID;
         public int instanceID;
-        //public string instanceType;
         public string CreatorID;
         public string GroupAccessType;
         public string region;
@@ -38,7 +35,6 @@ namespace VRchatLogDataModel
             this.logFrom = from;
             this.time = ((DateTimeOffset)item.time).ToUnixTimeSeconds();
             this.playerCount = item.playerCount;
-            //this.instance = item.instance;
             string temp = item.item;
             temp = temp.Trim();
             var temp2 = temp.Split(' ');
@@ -51,7 +47,6 @@ namespace VRchatLogDataModel
             this.PlayerName= PlayerName.Trim();
             this.worldID = item.instance.worldID;
             this.instanceID = item.instance.instanceID;
-            //this.instanceType = item.instance.instanceType;
             this.CreatorID = item.instance.CreatorID;
             this.GroupAccessType = item.instance.GroupAccessType;
             string GroupAccessTypePattern = "~groupAccessType\\((.+)\\)";
@@ -68,15 +63,6 @@ namespace VRchatLogDataModel
 
         public string toGraphQLcreationString() 
         {
-            /*
-            Newtonsoft.Json.JsonConvert.SerializeObject()
-            string data = Newtonsoft.Json.JsonConvert.SerializeObject(this);
-            string query = "mutation MyMutation {\r\n  createPlayerEvent(input: "+ data+") {\r\n    id\r\n  }\r\n}";
-            */
-            //string openbracket = "{";
-            //string closebracket = "}";
-            //long unixtimestamp=  ((DateTimeOffset)time).ToUnixTimeSeconds();
-            //string query = $"mutation MyMutation {openbracket}\r\n  createPlayerEvent(input: {openbracket} time: {unixtimestamp}, EventID: {EventID}, GroupAccessType: \"{GroupAccessType}\", PlayerName: \"{PlayerName}\", _version: 10, instanceID: {instanceID}, itemID: {itemID}, instanceType: \"{instanceType}\", playerCount: {playerCount}, roomName: \"{roomName}\", worldID: \"{worldID}\", type: \"{instanceType}\", region: \"{region}\"{closebracket}) \r\n{closebracket}";
             string query = $"mutation MyMutation {{\r\n  createPlayerEvent(input: {{EventID: \"{EventID}\", GroupAccessType: \"{GroupAccessType}\", PlayerName: \"{PlayerName}\", instanceID: {instanceID}, itemID: \"{itemID}\", playerCount: {playerCount}, region: \"{region}\", roomName: \"{roomName}\", time: {time}, type: \"{type}\", worldID: \"{worldID}\", logFrom: \"{logFrom}\"}}){{\r\n        _deleted\r\n    }} \r\n}}";
             return query;
         }
