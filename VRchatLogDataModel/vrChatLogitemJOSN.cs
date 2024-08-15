@@ -11,7 +11,7 @@ namespace VRchatLogDataModel
     {
         //FEClogsData
         //feclogsGraphQL
-        public string itemID { get; }
+        public string itemID;
         public DateTime time;
         public string EventID;
         public string type;
@@ -20,8 +20,8 @@ namespace VRchatLogDataModel
         public string worldID;
         public int instanceID;
         //public string instanceType;
-        public string CreatorID { get; private set; }
-        public string GroupAccessType { get; private set; }
+        public string CreatorID;
+        public string GroupAccessType;
         public string region;
         public string roomName;
         public string logFrom;
