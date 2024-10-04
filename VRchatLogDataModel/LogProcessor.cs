@@ -27,6 +27,7 @@ namespace VRchatLogDataModel
             LinkedList<vrChatLogItem> vrChatLogItems = new LinkedList<vrChatLogItem>();
             string currentLogText = "";
             int playerCount = 0;
+            bool joinsStrarted = false;
             vrChatinstance currentInstance = new vrChatinstance();
             while (!reader.EndOfStream)
             {
@@ -44,6 +45,7 @@ namespace VRchatLogDataModel
                         {
                             currentInstance = currentInstance.buildfromlogString(currentLogitem.RawText);
                             playerCount = 0;
+                            joinsStrarted = false;
                         }
                         string joiningorCreatingRoom = "Joining or Creating Room: ";
                         if (currentLogitem.item.Contains(joiningorCreatingRoom))
@@ -52,17 +54,20 @@ namespace VRchatLogDataModel
                             string roomName = currentLogitem.item.Substring(joiningorCreatingRoom.Length);
                             currentInstance.roomName = roomName;
                             playerCount = 0;
+                            joinsStrarted = false;
                         }
                         if (currentLogitem.item.Contains("OnLeftRoom"))
                         {
                             currentInstance = new vrChatinstance();
                             playerCount = 0;
+                            joinsStrarted = false;
                         }
                         if (currentLogitem.item.Contains("OnPlayerJoined"))
                         {
                             playerCount += 1;
+                            joinsStrarted = true;
                         }
-                        if (currentLogitem.item.Contains("OnPlayerLeft "))
+                        if (currentLogitem.item.Contains("OnPlayerLeft ") && joinsStrarted)
                         {
                             playerCount -= 1;
                         }
