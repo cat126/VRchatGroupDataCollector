@@ -1,4 +1,5 @@
-﻿using System;
+﻿using log4net;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +9,7 @@ using VRchatLogDataModel;
 
 namespace DataProcessorPrototype
 {
-    public class EventReport : GraphQLQuarriable, IFromvrChatLogitemJOSN
+    public class EventReport : GraphQLQuarriable, IFromvrChatLogitemJOSN, ISanityCheck
     {
         public string eventID ="";
         public string worldID ="";
@@ -50,37 +51,84 @@ namespace DataProcessorPrototype
         }
         public void finalize()
         {
+            peekPlayers = 0;
+            totalPlayers = 0;
+            LinkedList<string> allNames = new LinkedList<string>(); 
             var attendaceLogArray= attendaceLog.ToArray();
             Array.Sort(attendaceLogArray);
 
 
             LinkedList<AttendaceLog> newAttendaceLog = new LinkedList<AttendaceLog>();
             LinkedList<string> allreadyhere = new LinkedList<string>();
+            bool instanceStarted = false;
             foreach (var item in attendaceLogArray)
             {
                 if (item.joined  & allreadyhere.Contains(item.name)) 
                 {
                     continue;
                 }
-                if (item.joined  & !allreadyhere.Contains(item.name))
-                {
-                    allreadyhere.AddLast(item.name);
-                }
                 if (!item.joined & !allreadyhere.Contains(item.name))
                 {
                     continue;
                 }
+                if (item.joined  & !allreadyhere.Contains(item.name))
+                {
+                    allreadyhere.AddLast(item.name);
+                    instanceStarted = true;
+                    totalPlayers++;
+                }
+
                 if (!item.joined & allreadyhere.Contains(item.name))
                 {
                    var toRemove= allreadyhere.Find(item.name);
                     allreadyhere.Remove(toRemove);
                 }
+                if (instanceStarted) 
+                {
+                    newAttendaceLog.AddLast(item);
+                    if (!allNames.Contains(item.name)) 
+                    {
+                        allNames.AddLast(item.name);
+                    }
+                }
 
-
-
-                newAttendaceLog.AddLast(item);
+                
+                
             }
             attendaceLog= newAttendaceLog;
+
+            int currentPlayerCount = 0;
+            foreach (var item in attendaceLog) 
+            {
+                if (item.joined)
+                {
+                    currentPlayerCount++;
+
+                }
+                else 
+                {
+                    currentPlayerCount--;
+                }
+                if (currentPlayerCount<0) 
+                {
+                    currentPlayerCount = 0;
+                }
+                item.playerCount = currentPlayerCount;
+                this.peekPlayers = Math.Max(this.peekPlayers, currentPlayerCount);
+            }
+
+
+            LinkedList<string> fixedFirstTimers = new LinkedList<string>();
+
+            foreach (var item in firstTimeNames) 
+            {
+                if (!fixedFirstTimers.Contains(item) && allNames.Contains(item))
+                {
+                    fixedFirstTimers.AddFirst(item);
+                }
+            }
+            firstTimeNames = fixedFirstTimers;
+            firstTimers = firstTimeNames.Count;
         }
         public override string GetGraphQLSuffix()
         {
@@ -160,5 +208,85 @@ namespace DataProcessorPrototype
             return this.attendaceLog;
         }
 
+        public bool SanityCheck(ILog log)
+        {
+            if (firstlog> lastlog) 
+            {
+                log.Error($"Sanity check failed for EventReport {GetHashKey()} firstlog {firstlog} came after lastlog {lastlog}");
+                return false;
+            }
+
+            if (peekPlayers < 1) 
+            {
+                log.Error($"Sanity check failed for EventReport {GetHashKey()} peekPlayers {peekPlayers} is less than 1");
+                return false;
+            }
+            if( totalPlayers<1)
+            {
+                log.Error($"Sanity check failed for EventReport {GetHashKey()} totalPlayers {totalPlayers} is less than 1");
+                return false;
+            }
+            if( peekPlayers> totalPlayers)
+            {
+                log.Error($"Sanity check failed for EventReport {GetHashKey()} peekPlayers {peekPlayers} is greater than totalPlayers {totalPlayers}");
+                return false;
+            }
+            if(firstTimers<0) 
+            {
+                log.Error($"Sanity check failed for EventReport {GetHashKey()} firstTimers {firstTimers} is less than 0");
+                return false;
+
+            }
+
+            if (eventID.Equals(""))
+            {
+                log.Error($"Sanity check failed for EventReport {GetHashKey()} eventID is missing");
+                return false;
+            }
+            
+            if(worldID.Equals(""))
+            {
+                log.Error($"Sanity check failed for EventReport {GetHashKey()} worldID is missing");
+                return false;
+            }
+
+            if (firstTimeNames.Count!= firstTimers)
+            {
+                log.Error($"Sanity check failed for EventReport {GetHashKey()} the length of the firstTimeNames array is {firstTimeNames.Count} which is not equal to the firstTimers value of {firstTimers}");
+                return false;
+            }
+
+            foreach (var item in attendaceLog)
+            {
+                if (item.playerCount < 0)
+                {
+                    log.Error($"Sanity check failed for attendaceLog {item.GetHashKey()} in EventReport {GetHashKey()} item.playerCount {item.playerCount} is less than 0");
+                    return false;
+                }
+                if (totalPlayers < item.playerCount)
+                {
+                    log.Error($"Sanity check failed for attendaceLog {item.GetHashKey()} in EventReport {GetHashKey()} item.playerCount {item.playerCount} is less than totalPlayers {totalPlayers}");
+                    return false;
+                }
+                if (peekPlayers< item.playerCount)
+                {
+                    log.Error($"Sanity check failed for attendaceLog {item.GetHashKey()} in EventReport {GetHashKey()} peekPlayers {peekPlayers} is less than item.playerCount {item.playerCount}");
+                    return false;
+                }
+                if (item.time< firstlog)
+                {
+                    log.Error($"Sanity check failed for attendaceLog {item.GetHashKey()} in EventReport {GetHashKey()} item.time {item.time} is less than firstlog {firstlog}");
+                    return false;
+                } 
+                if (item.time>lastlog)
+                {
+                    log.Error($"Sanity check failed for attendaceLog {item.GetHashKey()} in EventReport {GetHashKey()} item.time {item.time} is greater than lastlog {lastlog}");
+                    return false;
+                }
+            }
+
+            return true;
+
+        }
     }
 }

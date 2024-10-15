@@ -1,4 +1,5 @@
-﻿using System;
+﻿using log4net;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +8,7 @@ using VRchatLogDataModel;
 
 namespace DataProcessorPrototype
 {
-    public class AttendaceLog: GraphQLQuarriable, IFromvrChatLogitemJOSN, IComparable<AttendaceLog>
+    public class AttendaceLog: GraphQLQuarriable, IFromvrChatLogitemJOSN, IComparable<AttendaceLog>, ISanityCheck
     {
         public string itemID = "";
         public string name ="";
@@ -81,5 +82,20 @@ namespace DataProcessorPrototype
                 this.joined = false;
             }
         }
+
+        public bool SanityCheck(ILog log)
+        {
+            
+            if (playerCount >= 0)
+            {
+                return true;
+            }
+            else 
+            {
+                log.Error($"Sanity check failed for AttendaceLog {GetHashKey()} playerCount is {playerCount} which is less then 0");
+                return false;
+            }
+        }
+
     }
 }

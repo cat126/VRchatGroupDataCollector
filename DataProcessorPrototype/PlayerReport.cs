@@ -1,4 +1,5 @@
-﻿using System;
+﻿using log4net;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -8,7 +9,7 @@ using VRchatLogDataModel;
 
 namespace DataProcessorPrototype
 {
-    public class PlayerReport : GraphQLQuarriable, IFromvrChatLogitemJOSN, IFirstLast
+    public class PlayerReport : GraphQLQuarriable, IFromvrChatLogitemJOSN, IFirstLast, ISanityCheck
     {
         public string name ="";
         public long fristseen =0;
@@ -63,6 +64,35 @@ namespace DataProcessorPrototype
         public override string GetTableName()
         {
             return "PlayerReport-yqjhtslhmngtjgdb3t5ifhsbza-master";
+        }
+
+        public bool SanityCheck(ILog log)
+        {
+            
+
+            if (fristseen < 1718830800) 
+            {
+                log.Error($"Sanity check failed for PlayerReport {GetHashKey()} firstSeen {fristseen} came before data collection started");
+                return false;
+            }
+
+            if (lastseen < fristseen) 
+            {
+                log.Error($"Sanity check failed for PlayerReport {GetHashKey()} lastSeen {lastseen} came before firstSeen {fristseen}");
+                return false;
+            }
+            if (eventsjoined <1)
+            {
+                log.Error($"Sanity check failed for PlayerReport {GetHashKey()} eventsJoined {eventsjoined} is less then 1");
+                return false;
+            }
+            if (firstEventID.Equals("")) 
+            {
+                log.Error($"Sanity check failed for PlayerReport {GetHashKey()} no firstEventID");
+                return false;
+            }
+           
+            return true;
         }
     }
 }

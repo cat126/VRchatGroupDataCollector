@@ -14,31 +14,33 @@ using GraphQL.Client.Serializer.Newtonsoft;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using VRchatLogDataModel;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+[assembly: log4net.Config.XmlConfigurator(ConfigFile = "log4net.config")]
 
 namespace DataProcessorPrototype
 {
     internal class Program
     {
-        static  void Main(string[] args)
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        static void Main(string[] args)
         {
 
-
+            log.Info("Program Starting");
             var awaiter =CreateJsonFileFromDatabase();
             awaiter.Wait();
+            log.Info("Program Finished");
         }
 
         private static async Task CreateJsonFileFromDatabase()
         {
-            
             var logon = AuthenticateWithSrp(Secret.GetUSername(), Secret.GetPassword());
             string token = logon.AuthenticationResult.AccessToken;
             var graphQLClient = new GraphQLHttpClient("https://hlfxzmed2jh4zgm37n4kdy5kna.appsync-api.us-east-2.amazonaws.com/graphql", new NewtonsoftJsonSerializer());
             graphQLClient.HttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
             Console.WriteLine(token);
-            Console.WriteLine("Hello, World!");
             Console.WriteLine(Path.Combine(AppContext.BaseDirectory, "worldReports.json"));
             AmazonDynamoDBClient dynamoDB = new AmazonDynamoDBClient();
             var dbLogTable = Table.LoadTable(dynamoDB, "PlayerEvent-yqjhtslhmngtjgdb3t5ifhsbza-master");
@@ -53,9 +55,9 @@ namespace DataProcessorPrototype
             int onItem = 0;
 
             List<AttributeValue> scanparms = new List<AttributeValue>();
-            scanparms.Add(new AttributeValue { N= "1722218500" });
+            //1724619323 
+            scanparms.Add(new AttributeValue { N= "1729015911" });
             ScanFilter filter = new ScanFilter();
-            //1722218500
             filter.AddCondition("time", ScanOperator.GreaterThan, scanparms);
             var scan = dbLogTable.Scan(filter);
             var pre = scan.GetNextSetAsync();
@@ -70,14 +72,14 @@ namespace DataProcessorPrototype
             {
                 foreach (var doucmentItem in items)
                 {
-                    //Console.WriteLine(onItem);
+                    Console.WriteLine(onItem);
                     onItem++;
                     vrChatLogitemJOSN item = JsonConvert.DeserializeObject<vrChatLogitemJOSN>(doucmentItem.ToJson());
                     WorldReport worldReport = await CreateOrGetAsync<WorldReport>(worldReports, item, item.worldID, graphQLClient, dynamoDB);
                     PlayerReport playerReport = await CreateOrGetAsync<PlayerReport>(playerReports, item, item.PlayerName, graphQLClient, dynamoDB);
                     EventReport eventReport = await CreateOrGetAsync<EventReport>(eventReports, item, item.EventID, graphQLClient, dynamoDB);
                     AttendaceLog attendaceLog= await CreateOrGetAsync<AttendaceLog>(attendaceLogs, item, item.itemID, graphQLClient, dynamoDB);
-                    
+
                     eventReport.peekPlayers = Math.Max(eventReport.peekPlayers, item.playerCount);
                     worldReport.firstLastUpdate(item.time);
                     playerReport.firstLastUpdate(item.time);
@@ -111,7 +113,9 @@ namespace DataProcessorPrototype
                 {
                     var aPlayerReport = playerReports[name];
                     if (aPlayerReport.fristseen >= report.firstlog &
-                        aPlayerReport.fristseen <= report.lastlog)
+                        aPlayerReport.fristseen <= report.lastlog  &
+                        !report.firstTimeNames.Contains(aPlayerReport.name)
+                        )
                     {
                         report.firstTimers++;
                         report.firstTimeNames.AddLast(name);
@@ -177,6 +181,22 @@ namespace DataProcessorPrototype
             SendToDatabase<WorldReport>(graphQLClient, worldReports, tasks);
             SendToDatabase<PlayerReport>(graphQLClient, playerReports, tasks);
             SendToDatabase<EventReport>(graphQLClient, eventReports, tasks);
+            LinkedList<AttendaceLog> keepedAttendaceLogs= new LinkedList<AttendaceLog>();
+            foreach (var eventReport in eventReports)
+            {
+                foreach (var item in eventReport.Value.GetAttendaceLog())
+                {
+                    keepedAttendaceLogs.AddLast(item);
+                }
+            }
+            foreach (var attendaceLog in attendaceLogs)
+            {
+                if (!keepedAttendaceLogs.Contains(attendaceLog.Value))
+                {
+                    attendaceLogs.Remove(attendaceLog.Key);
+                }
+            }
+
             SendToDatabase<AttendaceLog>(graphQLClient, attendaceLogs, tasks);
 
             Console.WriteLine("sending data");
@@ -194,22 +214,27 @@ namespace DataProcessorPrototype
 
         }
 
-        private static void SendToDatabase<type>(GraphQLHttpClient graphQLClient, Dictionary<string, type> Reports, LinkedList<Task> tasks) where type : GraphQLQuarriable
+        private static void SendToDatabase<type>(GraphQLHttpClient graphQLClient, Dictionary<string, type> Reports, LinkedList<Task> tasks) where type : GraphQLQuarriable, ISanityCheck
         {
             var reportsArray = DictionaryToArray<type>(Reports);
             foreach (var report in reportsArray)
             {
+                if (!report.SanityCheck(log))
+                {
+                    //log.Error($"Sanity check failed for item {report.GetHashKey()} \n {report}");
+                    continue;
+                }
+
                 var quarry = "";
                 if (report.GetIsInDatabase())
                 {
-                    report._version++;
                     quarry = report.GetUpdateQuarry();
                 }
                 else
                 {
                     quarry = report.GetCreateQuarry();
                 }
-                tasks.AddLast(SendQuery<WorldReport>(graphQLClient, quarry));
+                tasks.AddLast(SendQuery<type>(graphQLClient, quarry));
             }
         }
 
@@ -270,19 +295,19 @@ namespace DataProcessorPrototype
             return report;
         }
 
-        private static async Task<GraphQLResponse<type>> SendQuery<type>(GraphQLHttpClient graphQLClient, string quarry) where type : GraphQLQuarriable, IFromvrChatLogitemJOSN, new()
+        private static async Task<GraphQLResponse<type>> SendQuery<type>(GraphQLHttpClient graphQLClient, string quarry) where type : GraphQLQuarriable
         {
             var dataupdate = new GraphQLRequest(quarry);
             var sentRequest = graphQLClient.SendQueryAsync<type>(dataupdate);
             var temp=await sentRequest;
             if (temp.Errors != null) 
             {
-                Console.WriteLine("Query failed:");
-                Console.WriteLine(quarry);
+                string errorMessage = "";
                 foreach (var error in temp.Errors)
                 {
-                    Console.WriteLine(error.Message);
+                    errorMessage+=error.Message+"\n";
                 }
+                log.Error($"Query failed:\n{quarry}\n{errorMessage}");
             }
             
             return temp;

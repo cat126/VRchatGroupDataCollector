@@ -1,4 +1,5 @@
-﻿using System;
+﻿using log4net;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +8,7 @@ using VRchatLogDataModel;
 
 namespace DataProcessorPrototype
 {
-    public class WorldReport : GraphQLQuarriable, IFromvrChatLogitemJOSN, IFirstLast
+    public class WorldReport : GraphQLQuarriable, IFromvrChatLogitemJOSN, IFirstLast, ISanityCheck
     {
         public string worldID ="";
         public string worldName ="";
@@ -63,6 +64,22 @@ namespace DataProcessorPrototype
         public override string GetTableName()
         {
            return "WorldReport-yqjhtslhmngtjgdb3t5ifhsbza-master";
+        }
+
+        public bool SanityCheck(ILog log)
+        {
+            if (lastused< firstused)
+            {
+                log.Error($"Sanity check failed for WorldReport {GetHashKey()} lastUsed {lastused} came before firstUsed {firstused}");
+                return false;
+            }
+            if (timesused < 1) 
+            {
+                log.Error($"Sanity check failed for WorldReport {GetHashKey()} timesUsed {timesused} is less than 1");
+                return false;
+            }
+
+            return true;
         }
     }
 }
