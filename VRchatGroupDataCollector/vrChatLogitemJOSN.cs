@@ -11,7 +11,7 @@ namespace VRchatGroupDataCollector
         //FEClogsData
         //feclogsGraphQL
         public int itemID { get; }
-        public DateTime time;
+        public long time;
         public int EventID;
         public string type;
         public string PlayerName;
@@ -32,7 +32,8 @@ namespace VRchatGroupDataCollector
         }
             public vrChatLogitemJOSN(vrChatLogItem item)
         {
-            this.time = item.time.ToUniversalTime();
+            
+            this.time = ((DateTimeOffset)item.time).ToUnixTimeSeconds();
             this.playerCount = item.playerCount;
             //this.instance = item.instance;
             string temp = item.item;
@@ -61,9 +62,9 @@ namespace VRchatGroupDataCollector
             */
             //string openbracket = "{";
             //string closebracket = "}";
-            long unixtimestamp=  ((DateTimeOffset)time).ToUnixTimeSeconds();
+            //long unixtimestamp=  ((DateTimeOffset)time).ToUnixTimeSeconds();
             //string query = $"mutation MyMutation {openbracket}\r\n  createPlayerEvent(input: {openbracket} time: {unixtimestamp}, EventID: {EventID}, GroupAccessType: \"{GroupAccessType}\", PlayerName: \"{PlayerName}\", _version: 10, instanceID: {instanceID}, itemID: {itemID}, instanceType: \"{instanceType}\", playerCount: {playerCount}, roomName: \"{roomName}\", worldID: \"{worldID}\", type: \"{instanceType}\", region: \"{region}\"{closebracket}) \r\n{closebracket}";
-            string query = $"mutation MyMutation {{\r\n  createPlayerEvent(input: {{EventID: {EventID}, GroupAccessType: \"{GroupAccessType}\", PlayerName: \"{PlayerName}\", _version: 10, instanceID: {instanceID}, instanceType: \"{instanceType}\", itemID: {itemID}, playerCount: {playerCount}, region: \"{region}\", roomName: \"{roomName}\", time: {unixtimestamp}, type: \"{type}\", worldID: \"{worldID}\"}}){{\r\n        _deleted\r\n    }} \r\n}}";
+            string query = $"mutation MyMutation {{\r\n  createPlayerEvent(input: {{EventID: {EventID}, GroupAccessType: \"{GroupAccessType}\", PlayerName: \"{PlayerName}\", _version: 10, instanceID: {instanceID}, instanceType: \"{instanceType}\", itemID: {itemID}, playerCount: {playerCount}, region: \"{region}\", roomName: \"{roomName}\", time: {time}, type: \"{type}\", worldID: \"{worldID}\"}}){{\r\n        _deleted\r\n    }} \r\n}}";
             return query;
         }
     }
