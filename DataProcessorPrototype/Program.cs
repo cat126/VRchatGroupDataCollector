@@ -27,11 +27,16 @@ namespace DataProcessorPrototype
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         static void Main(string[] args)
         {
-
+            
             log.Info("Program Starting");
             var awaiter =CreateJsonFileFromDatabase();
             awaiter.Wait();
             log.Info("Program Finished");
+            
+
+            var awaiter2 = GetAllReportsFromDynanoDB();
+            awaiter2.Wait();
+            Console.WriteLine("Finished");
         }
 
         private static async Task CreateJsonFileFromDatabase()
@@ -214,6 +219,37 @@ namespace DataProcessorPrototype
 
         }
 
+        private static async Task GetAllReportsFromDynanoDB() 
+        {
+            AmazonDynamoDBClient dynamoDB = new AmazonDynamoDBClient();
+            var worldReportsWaiter = listAll<WorldReport>(dynamoDB);
+            var playerReportsWaiter = listAll<PlayerReport> (dynamoDB);
+            var eventReportsWaiter = listAll<EventReport> (dynamoDB);
+            var attendaceLogsWaiter = listAll<AttendaceLog> (dynamoDB);
+
+            WorldReport[] worldReports = await worldReportsWaiter;
+            PlayerReport[] playerReports = await playerReportsWaiter;
+            EventReport[] eventReports = await eventReportsWaiter;
+            AttendaceLog[] attendaceLogs = await attendaceLogsWaiter;
+
+            object[] Alldata = { worldReports, playerReports , eventReports, attendaceLogs };
+
+            foreach (var item in Alldata)
+            {
+                item.GetType().ToString();
+                using (StreamWriter outputFile = new StreamWriter(Path.Combine(AppContext.BaseDirectory, item.GetType().ToString()+".json")))
+                {
+
+                    outputFile.WriteLine(JsonConvert.SerializeObject(item));
+                }
+            }
+                
+
+
+
+
+        }
+
         private static void SendToDatabase<type>(GraphQLHttpClient graphQLClient, Dictionary<string, type> Reports, LinkedList<Task> tasks) where type : GraphQLQuarriable, ISanityCheck
         {
             var reportsArray = DictionaryToArray<type>(Reports);
@@ -293,6 +329,30 @@ namespace DataProcessorPrototype
 
             }
             return report;
+        }
+        private static async Task<type[]> listAll<type>( AmazonDynamoDBClient dynamoDB) where type : GraphQLQuarriable, IFromvrChatLogitemJOSN, new()
+        {
+
+            LinkedList<type> data = new();
+            type typeData = new type();
+            var tableName = typeData.GetTableName();
+            var theDBTable = Table.LoadTable(dynamoDB, tableName);
+            List<AttributeValue> scanparms = new List<AttributeValue>();
+            scanparms.Add(new AttributeValue { N = "0" });
+            ScanFilter filter = new ScanFilter();
+            filter.AddCondition("_lastChangedAt", ScanOperator.GreaterThan, scanparms);
+            
+             var dbScaner = theDBTable.Scan(filter);
+            while (!dbScaner.IsDone) { 
+            var itemsFromDb = await dbScaner.GetNextSetAsync();
+            Console.WriteLine($"got {itemsFromDb.Count} items from {tableName}");
+            foreach (var item in itemsFromDb) 
+            {
+                var tempReport = JsonConvert.DeserializeObject<type>(item.ToJson());
+                data.AddLast(tempReport);
+            }
+            }
+            return data.ToArray();
         }
 
         private static async Task<GraphQLResponse<type>> SendQuery<type>(GraphQLHttpClient graphQLClient, string quarry) where type : GraphQLQuarriable
