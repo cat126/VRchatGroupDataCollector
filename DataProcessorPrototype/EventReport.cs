@@ -1,10 +1,4 @@
 ﻿using log4net;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using VRchatLogDataModel;
 
 namespace DataProcessorPrototype
@@ -46,7 +40,7 @@ namespace DataProcessorPrototype
                 lastlog = item.time;
             }
            attendaceLog.AddLast(item);
-           //Console.WriteLine(attendaceLog.Count);
+           
 
         }
         public void finalize()

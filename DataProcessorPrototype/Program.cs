@@ -1,25 +1,16 @@
-﻿using Amazon.AppSync;
-using Amazon.AppSync.Model;
+﻿
 using Amazon.CognitoIdentityProvider;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Extensions.CognitoAuthentication;
 using Amazon.Runtime;
-using Amazon.Runtime.Internal.Auth;
 using GraphQL;
-using GraphQL.Client.Abstractions;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using VRchatLogDataModel;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 [assembly: log4net.Config.XmlConfigurator(ConfigFile = "log4net.config")]
 
 namespace DataProcessorPrototype
@@ -375,7 +366,6 @@ namespace DataProcessorPrototype
             {
                 if (!report.SanityCheck(log))
                 {
-                    //log.Error($"Sanity check failed for item {report.GetHashKey()} \n {report}");
                     continue;
                 }
 
@@ -402,14 +392,14 @@ namespace DataProcessorPrototype
                 
                 report = new();
                 report.fromvrChatLogitemJOSN(item);
-                //AmazonDynamoDBClient dynamoDB = new AmazonDynamoDBClient();
+
 
                 var tableName = report.GetTableName();
                 var theDBTable = Table.LoadTable(dynamoDB, tableName);
                 var itemFromDbWaiter=  theDBTable.GetItemAsync(itemkey);
                 var itemFromDb = await itemFromDbWaiter;
 
-                //var results = dbitemTask.Result;
+             
                 if (itemFromDb != null) 
                 {
                   
@@ -425,24 +415,6 @@ namespace DataProcessorPrototype
                     }
                 }
 
-                /*
-                var quarry = report.GetGetQuarry();
-                var resultWaiter = SendQuery<type>(graphQLClient, quarry);
-                resultWaiter.Wait();
-                
-                var result=resultWaiter.GetAwaiter().GetResult();
-                if (result.Errors == null) 
-                {
-                    
-                    var tempreport = result.Data;
-                    tempreport.SetIsInDatabase(true);
-                    if (!tempreport.IsEmpty()) 
-                    {
-                        report = tempreport;
-                    }
-                   
-                }
-                */
                 reports.Add(itemkey, report);
 
             }

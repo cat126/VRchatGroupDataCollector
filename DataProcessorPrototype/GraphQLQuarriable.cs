@@ -1,10 +1,6 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+
 
 namespace DataProcessorPrototype
 {    
@@ -29,7 +25,6 @@ namespace DataProcessorPrototype
         public string GetGraphQLData()
         {
             JsonSerializerSettings settings = new JsonSerializerSettings();
-            //GraphQL.Client.Serializer.Newtonsoft
             string json = JsonConvert.SerializeObject(this);
             string pattern = "\"([^: ,]+)\":([^: ,]+)";
             var matchs=Regex.Matches(json,pattern);
