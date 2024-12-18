@@ -15,7 +15,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using VRchatLogDataModel;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 [assembly: log4net.Config.XmlConfigurator(ConfigFile = "log4net.config")]
@@ -32,13 +34,65 @@ namespace DataProcessorPrototype
             var awaiter =CreateJsonFileFromDatabase();
             awaiter.Wait();
             log.Info("Program Finished");
-            
+             
 
             var awaiter2 = GetAllReportsFromDynanoDB();
             awaiter2.Wait();
             Console.WriteLine("Finished");
-        }
+           
+            
+            
+            var awaiter3 =  rawDataDownload();
+            awaiter3.Wait();
+            Console.WriteLine("Done");
+            
 
+            var awaiter4 = StaffReport();
+            awaiter4.Wait();
+        }
+        private static async Task StaffReport() 
+        {
+
+            string[] staff = { };
+
+            Console.WriteLine("staff count "+staff.Length);
+            using StreamReader reader = new(Path.Combine(AppContext.BaseDirectory, "DataProcessorPrototype.PlayerReport[].json"));
+            string text = reader.ReadToEnd();
+            PlayerReport[] playerReports= JsonConvert.DeserializeObject<PlayerReport[]>(text);
+
+            LinkedList<PlayerReport> staffreports = new LinkedList<PlayerReport>();
+            LinkedList<string> staffPresent = new LinkedList<string>();
+
+            foreach (var player in playerReports)
+            {
+                foreach (var staffName in staff)
+                {
+                    if (player.name.Equals(staffName))
+                    {
+                        staffreports.AddLast(player);
+                    }
+                }
+            }
+
+            var staffreportsSorted = staffreports.OrderBy(p=>p.lastseen*-1).ToArray();
+            foreach (var staffreport in staffreportsSorted)
+            {
+                DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                dateTime = dateTime.AddSeconds(staffreport.lastseen).ToLocalTime();
+                //Console.WriteLine($"{staffreport.name} has been to {staffreport.eventsjoined} recorded events the last recored event was on {dateTime}");
+                Console.WriteLine($"{staffreport.name} has been to {staffreport.eventsjoined} recorded events the last recored event was on <t:{staffreport.lastseen}:D>");
+                staffPresent.AddLast(staffreport.name);
+            }
+
+            foreach (var staffName in staff)
+            {
+                if (!staffPresent.Contains(staffName))
+                {
+                    Console.WriteLine($"{staffName} has not been to any recorded events");
+                }
+            }
+
+        }
         private static async Task CreateJsonFileFromDatabase()
         {
             var logon = AuthenticateWithSrp(Secret.GetUSername(), Secret.GetPassword());
@@ -61,7 +115,7 @@ namespace DataProcessorPrototype
 
             List<AttributeValue> scanparms = new List<AttributeValue>();
             //1724619323 
-            scanparms.Add(new AttributeValue { N= "1729015911" });
+            scanparms.Add(new AttributeValue { N= "1730073600" });
             ScanFilter filter = new ScanFilter();
             filter.AddCondition("time", ScanOperator.GreaterThan, scanparms);
             var scan = dbLogTable.Scan(filter);
@@ -80,6 +134,13 @@ namespace DataProcessorPrototype
                     Console.WriteLine(onItem);
                     onItem++;
                     vrChatLogitemJOSN item = JsonConvert.DeserializeObject<vrChatLogitemJOSN>(doucmentItem.ToJson());
+
+                    //temp fix
+                    String pattern = "\\s\\((usr[_\\S]+)\\)";
+                 
+                    item.PlayerName=Regex.Replace(item.PlayerName, pattern, String.Empty);
+                    
+                    //temp fix
                     WorldReport worldReport = await CreateOrGetAsync<WorldReport>(worldReports, item, item.worldID, graphQLClient, dynamoDB);
                     PlayerReport playerReport = await CreateOrGetAsync<PlayerReport>(playerReports, item, item.PlayerName, graphQLClient, dynamoDB);
                     EventReport eventReport = await CreateOrGetAsync<EventReport>(eventReports, item, item.EventID, graphQLClient, dynamoDB);
@@ -116,15 +177,24 @@ namespace DataProcessorPrototype
                 }
                 foreach (var name in names)
                 {
-                    var aPlayerReport = playerReports[name];
-                    if (aPlayerReport.fristseen >= report.firstlog &
-                        aPlayerReport.fristseen <= report.lastlog  &
-                        !report.firstTimeNames.Contains(aPlayerReport.name)
-                        )
+                    //TODO remove try cacth
+                    try
                     {
-                        report.firstTimers++;
-                        report.firstTimeNames.AddLast(name);
-                        playerReports[name].firstEventID = report.eventID;
+                        var aPlayerReport = playerReports[name];
+                        if (aPlayerReport.fristseen >= report.firstlog &
+                            aPlayerReport.fristseen <= report.lastlog &
+                            !report.firstTimeNames.Contains(aPlayerReport.name)
+                            )
+                        {
+                            report.firstTimers++;
+                            report.firstTimeNames.AddLast(name);
+                            playerReports[name].firstEventID = report.eventID;
+                        }
+                    }
+                    catch (Exception)
+                    {
+
+                       
                     }
                 }
             }
@@ -218,7 +288,55 @@ namespace DataProcessorPrototype
             }
 
         }
+        private static async Task rawDataDownload()
+        {
+            var logon = AuthenticateWithSrp(Secret.GetUSername(), Secret.GetPassword());
+            string token = logon.AuthenticationResult.AccessToken;
+            var graphQLClient = new GraphQLHttpClient("https://hlfxzmed2jh4zgm37n4kdy5kna.appsync-api.us-east-2.amazonaws.com/graphql", new NewtonsoftJsonSerializer());
+            graphQLClient.HttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+            Console.WriteLine(token);
+            Console.WriteLine(Path.Combine(AppContext.BaseDirectory, "worldReports.json"));
+            AmazonDynamoDBClient dynamoDB = new AmazonDynamoDBClient();
+            var dbLogTable = Table.LoadTable(dynamoDB, "PlayerEvent-yqjhtslhmngtjgdb3t5ifhsbza-master");
+            int onItem = 0;
+            List<AttributeValue> scanparms = new List<AttributeValue>();
+            scanparms.Add(new AttributeValue { N = "0" });
+            ScanFilter filter = new ScanFilter();
+            filter.AddCondition("time", ScanOperator.GreaterThan, scanparms);
+            var scan = dbLogTable.Scan(filter);
+            var pre = scan.GetNextSetAsync();
+            pre.Wait();
+            var items = pre.Result;
+            bool moreTtems = true;
+            Console.WriteLine(items.Count);
+            LinkedList<vrChatLogitemJOSN> allrawLogItems = new();
+            while (moreTtems)
+            {
+                foreach (var doucmentItem in items)
+                {
+                    Console.WriteLine(onItem);
+                    onItem++;
+                    vrChatLogitemJOSN item = JsonConvert.DeserializeObject<vrChatLogitemJOSN>(doucmentItem.ToJson());
+                    allrawLogItems.AddLast(item);
 
+                }
+                if (!scan.IsDone)
+                {
+                    pre = scan.GetNextSetAsync();
+                    pre.Wait();
+                    items = pre.Result;
+                }
+                else
+                {
+                    moreTtems = false;
+                }
+            }
+            using (StreamWriter outputFile = new StreamWriter(Path.Combine(AppContext.BaseDirectory, "rawData.json")))
+            {
+
+                outputFile.WriteLine(JsonConvert.SerializeObject(allrawLogItems));
+            }
+        }
         private static async Task GetAllReportsFromDynanoDB() 
         {
             AmazonDynamoDBClient dynamoDB = new AmazonDynamoDBClient();
@@ -401,5 +519,6 @@ namespace DataProcessorPrototype
             AuthFlowResponse authResponse = test.GetAwaiter().GetResult();
             return authResponse;
         }
+
     }
 }
